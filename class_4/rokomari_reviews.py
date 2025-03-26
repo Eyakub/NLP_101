@@ -9,12 +9,6 @@ import pandas as pd
 from selenium.common.exceptions import TimeoutException
 
 
-def scroll_by_height(driver, height):
-    for i in range(0, height/2): 
-        driver.execute_script(f"window.scrollTo(0, {i});")
-        time.sleep(0.1)
-
-
 def get_product_comments(product_url):
     # options = Options()
     # options.add_argument("--headless")
