@@ -16,3 +16,4 @@ venv/
 # Test and coverage files
 .coverage
 .tox/
+.DS_Store
