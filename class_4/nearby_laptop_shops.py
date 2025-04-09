@@ -2,6 +2,9 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 import time
 import re
 import pandas as pd
@@ -13,23 +16,42 @@ def fetching_number(str_no):
     match = pattern.search(str_no)
     if match:
         phone_number = match.group()
-        # print("Extracted phone number:", phone_number)
+        print("Extracted phone number:", phone_number)
     else:
         phone_number = None
         print("No phone number found.")
     return phone_number
 
 
-def laptop_shop_list(url):
-    driver = webdriver.Chrome()
+def chrome_options():
+    options = Options()
+    # options.add_argument("--headless")
+    options.add_argument("--disable-cache")
+    options.add_argument("--incognito")
+    return options
+
+def shop_numbers(g_url, msg):
+    opt = chrome_options()
+    driver = webdriver.Chrome(options=opt)
+    driver.get(g_url)
     driver.maximize_window()
-    driver.get(url)
 
     wait = WebDriverWait(driver, 10)
+    search_box = wait.until(EC.presence_of_element_located((By.NAME, "q")))
+    search_box.send_keys(msg)
+    search_box.send_keys(Keys.RETURN)
     time.sleep(3)
 
+    # click on recaptcha
+    recaptcha_btn = driver.find_element(By.CLASS_NAME, "g-recaptcha")
+    action = ActionChains(driver)
+    action.move_to_element(recaptcha_btn).click().perform()
+    time.sleep(20)
+    more_btn = driver.find_element(By.TAG_NAME, "g-more-link")
+    action.move_to_element(more_btn).click().perform()
+
     shop_info = []
-    
+
     while len(shop_info) < 100:
         try:
             results = driver.find_elements(By.XPATH, "//div[contains(@class, 'VkpGBb')]")
@@ -55,12 +77,13 @@ def laptop_shop_list(url):
             print(f"No more needed...{e}")
 
     driver.quit()
-    print("shop info: ", shop_info)
     return pd.DataFrame(shop_info)
 
 
 if __name__ == '__main__':
-    url = "https://www.google.com/search?sca_esv=f731f35a248a5872&tbm=lcl&sxsrf=AHTn8zo0lCQ62y9BLQ5CPLYPy1BtigryGw:1743022481173&q=laptop+shop+nearby&rflfq=1&num=10&sa=X&ved=2ahUKEwjhuc3e0KiMAxUzbvUHHY42FIoQjGp6BAgtEAE&biw=1216&bih=940&dpr=1#rlfi=hd:;si:;mv:[[23.8131137,90.4825032],[23.688104499999998,90.3532808]];tbs:lrf:!1m4!1u3!2m2!3m1!1e1!1m4!1u2!2m2!2m1!1e1!2m1!1e2!2m1!1e3!3sIAE,lf:1,lf_ui:10"
-    list_of_info = laptop_shop_list(url)
-    list_of_info.to_csv("shop_info.csv", index=False)
+    url = "https://www.google.com/"
+    user_input = input("Enter your search message (leave empty for default 'Laptop shop near Mirpur'): ")
+    user_msg = user_input if user_input else "Laptop shop near Mirpur"
 
+    numbers = shop_numbers(url, user_msg)
+    numbers.to_csv("shop_numbers.csv", index=False)
